@@ -35,10 +35,45 @@ spec:
           spec:
             description: ReplikaSpec defines the desired state of Replika
             properties:
-              foo:
-                description: Foo is an example field of Replika. Edit replika_types.go
-                  to remove/update
-                type: string
+              mode:
+                description: Overwrite the target or not
+                type: boolean
+              source:
+                description: ReplikaSourceSpec define the source resource
+                properties:
+                  group:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - group
+                - kind
+                - name
+                - version
+                type: object
+              synchronization:
+                description: SynchronizationSpec defines the behavior of synchronization
+                properties:
+                  time:
+                    type: string
+                required:
+                - time
+                type: object
+              target:
+                description: ReplikaTargetSpec defines the target [...]
+                properties:
+                  namespaces:
+                    type: string
+                type: object
+            required:
+            - synchronization
+            - target
             type: object
           status:
             description: ReplikaStatus defines the observed state of Replika
