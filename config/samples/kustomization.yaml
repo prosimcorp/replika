@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- replika_v1alpha1_replika.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
