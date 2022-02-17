@@ -23,13 +23,40 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type SynchronizationSpec struct {
+	Time string `json:"time"`
+}
+
+//
+type ReplikaTargetSpec struct {
+	Namespaces string `json:"namespaces,omitempty"`
+}
+
+//
+type ReplikaSourceSpec struct {
+	Group     string `json:"group"`
+	Version   string `json:"version"`
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
 // ReplikaSpec defines the desired state of Replika
 type ReplikaSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Replika. Edit replika_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Overwrite the target or not
+	Overwrite bool `json:"mode,omitempty"`
+
+	// SynchronizationSpec defines the behavior of synchronization
+	Synchronization SynchronizationSpec `json:"synchronization"`
+
+	// ReplikaSourceSpec define the source resource
+	Source ReplikaSourceSpec `json:"source,omitempty"`
+
+	// ReplikaTargetSpec defines the target [...]
+	Target ReplikaTargetSpec `json:"target"`
 }
 
 // ReplikaStatus defines the observed state of Replika
