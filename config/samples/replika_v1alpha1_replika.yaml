@@ -1,0 +1,6 @@
+apiVersion: replika.prosimcorp.com/v1alpha1
+kind: Replika
+metadata:
+  name: replika-sample
+spec:
+  # TODO(user): Add fields here

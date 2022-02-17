@@ -1,0 +1,24 @@
+# permissions for end users to edit replikas.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: replika-editor-role
+rules:
+- apiGroups:
+  - replika.prosimcorp.com
+  resources:
+  - replikas
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - replika.prosimcorp.com
+  resources:
+  - replikas/status
+  verbs:
+  - get

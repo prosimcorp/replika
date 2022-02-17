@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - replika.prosimcorp.com
+  resources:
+  - replikas
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - replika.prosimcorp.com
+  resources:
+  - replikas/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - replika.prosimcorp.com
+  resources:
+  - replikas/status
+  verbs:
+  - get
+  - patch
+  - update
