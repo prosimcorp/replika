@@ -35,9 +35,6 @@ spec:
           spec:
             description: ReplikaSpec defines the desired state of Replika
             properties:
-              mode:
-                description: Overwrite the target or not
-                type: boolean
               source:
                 description: ReplikaSourceSpec define the source resource
                 properties:
@@ -69,7 +66,9 @@ spec:
                 description: ReplikaTargetSpec defines the target [...]
                 properties:
                   namespaces:
-                    type: string
+                    items:
+                      type: string
+                    type: array
                 type: object
             required:
             - synchronization

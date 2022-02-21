@@ -13,7 +13,18 @@ rules:
   verbs:
   - create
   - delete
-  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch

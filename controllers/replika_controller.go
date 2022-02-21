@@ -18,13 +18,14 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,9 @@ import (
 )
 
 const (
+	defaultSynchronizationTime = "15s"
+	defaultTargetNamespace     = "default"
+
 	// The Replika CR which created the resource
 	resourceReplikaLabelPartKey   = "replika.prosimcorp.com/part-of"
 	resourceReplikaLabelPartValue = ""
@@ -40,49 +44,76 @@ const (
 	// Who is managing the resources
 	resourceReplikaLabelCreatedKey   = "replika.prosimcorp.com/created-by"
 	resourceReplikaLabelCreatedValue = "replika-controller"
+
+	// Define the finalizers for handling deletion
+	replikaFinalizer = "replika.prosimcorp.com/finalizer"
 )
 
 // ReplikaReconciler reconciles a Replika object
 type ReplikaReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	ReplikaInstance *replikav1alpha1.Replika
-	QuitGoroutine   bool
+	Scheme *runtime.Scheme
 }
 
-// GetNamespaces Returns the namespaces of a Replika as a golang list
-func (r *ReplikaReconciler) GetNamespaces(str string) ([]string, error) {
-	str = strings.TrimSpace(str)
+// GetNamespaces Returns the target namespaces of a Replika as a golang list
+// The namespace of the replicated source is not listed to avoid overwrites
+func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav1alpha1.Replika) ([]string, error) {
 
-	if str == "" {
-		return []string{"default"}, nil
+	var replikaNamespaces, processedNamespaces []string
+
+	replikaNamespaces = replika.Spec.Target.Namespaces
+
+	// Empty list of targets, only 'default' included
+	if len(replikaNamespaces) == 0 {
+		if replika.Spec.Source.Namespace != defaultTargetNamespace {
+			return []string{defaultTargetNamespace}, nil
+		}
 	}
 
-	if str == "*" {
-		namespace := &corev1.NamespaceList{}
-		err := r.List(context.Background(), namespace)
+	// Only one target. Target all namespaces?
+	if len(replikaNamespaces) == 1 && replikaNamespaces[0] == "*" {
+		// Get a list of all namespaces
+		namespaceList := &corev1.NamespaceList{}
+		err := r.List(ctx, namespaceList)
 		if err != nil {
 			return nil, err
 		}
 
-		list := make([]string, namespace.Size())
-		for _, v := range namespace.Items {
-			list = append(list, v.GetNamespace())
+		// Convert Namespace Objects into Strings
+		for _, v := range namespaceList.Items {
+			// Do NOT include the namespace of the replicated source to avoid possible overwrites
+			if v.GetName() == replika.Spec.Source.Namespace {
+				continue
+			}
+			processedNamespaces = append(processedNamespaces, v.GetName())
 		}
-		return list, nil
+		return processedNamespaces, nil
 	}
 
-	list := strings.Split(str, ",")
-
-	return list, nil
+	// TODO: Loop over the list and check namespaces
+	return replikaNamespaces, nil
 }
 
-// UpdateTarget Update a target. The up-to-date spec comes from outside
+// GetSynchronizationTime return the spec.synchronization.time as duration, or default time on failures
+func (r *ReplikaReconciler) GetSynchronizationTime(replika *replikav1alpha1.Replika) (time.Duration, error) {
+
+	defaultSynchronizationTimeDuration, err := time.ParseDuration(defaultSynchronizationTime)
+
+	synchronizationTimeDuration, err := time.ParseDuration(replika.Spec.Synchronization.Time)
+	if err != nil {
+		log.Log.Error(err, "Can not parse the synchronization time from replika: "+replika.Name)
+		return defaultSynchronizationTimeDuration, err
+	}
+
+	return synchronizationTimeDuration, nil
+}
+
+// UpdateTarget Update a target with the new data coming from function parameters
 func (r *ReplikaReconciler) UpdateTarget(ctx context.Context, target *unstructured.Unstructured) (err error) {
 
 	// Look for the target in the target namespace
 	tmpTarget := target.DeepCopy()
-	log.Log.Info("looking for target resource in namespace '" + target.GetNamespace() + "'...")
+	log.Log.Info("Looking for target resource in namespace '" + target.GetNamespace() + "'...")
 	err = r.Get(ctx, client.ObjectKey{
 		Namespace: target.GetNamespace(),
 		Name:      tmpTarget.GetName(),
@@ -90,147 +121,148 @@ func (r *ReplikaReconciler) UpdateTarget(ctx context.Context, target *unstructur
 
 	// Create the resource when it is not found
 	if err != nil {
-		log.Log.Info("creating target resource in namespace '" + target.GetNamespace() + "'...")
+		log.Log.Info("Creating target resource in namespace '" + target.GetNamespace() + "'...")
 		err = r.Create(ctx, target.DeepCopy())
 		if err != nil {
-			log.Log.Error(err, "can not create the resource inside namespace '"+target.GetNamespace()+"'")
+			log.Log.Error(err, "Can not create the resource inside namespace '"+target.GetNamespace()+"'")
 			return err
 		}
-		log.Log.Info("target resource created successfully in namespace '" + target.GetNamespace() + "'")
+		log.Log.Info("Target resource created successfully in namespace '" + target.GetNamespace() + "'")
 		return err
 	}
 
-	log.Log.Info("target resource found successfully in namespace '" + target.GetNamespace() + "'")
+	log.Log.Info("Target resource found successfully in namespace '" + target.GetNamespace() + "'")
 
 	// Objects in Kubernetes are uniquely identified
 	// Set target UID to the UID received from de created resource
 	target.SetUID(tmpTarget.GetUID())
 
 	// Update the object
-	log.Log.Info("updating target resource in namespace '" + target.GetNamespace() + "'...")
+	log.Log.Info("Updating target resource in namespace '" + target.GetNamespace() + "'...")
 	err = r.Update(ctx, target.DeepCopy())
 	if err != nil {
-		log.Log.Error(err, "can not update the resource inside namespace '"+target.GetNamespace()+"'")
+		log.Log.Error(err, "Can not update the resource inside namespace '"+target.GetNamespace()+"'")
 		return err
 	}
-	log.Log.Info("target resource update successfully in namespace '" + target.GetNamespace() + "'")
+	log.Log.Info("Target resource update successfully in namespace '" + target.GetNamespace() + "'")
 
 	return err
 }
 
-// DeleteTargets delete all the targets that matches labels of the Replika CR which created them
-func (r *ReplikaReconciler) DeleteTargets(ctx context.Context) (err error) {
+// UpdateTargets Synchronizes all the targets from a source declared on a Replika CR
+func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav1alpha1.Replika) (err error) {
+
+	// Calculate the duration of the synchronization
+	var durationTime time.Duration
+	durationTime, err = r.GetSynchronizationTime(replika)
+	if err != nil {
+		log.Log.Error(err, "Can not parse the synchronization time.")
+	}
 
 	// Get a Go list of namespaces from the declared string
 	var namespaces []string
-	namespaces, err = r.GetNamespaces(r.ReplikaInstance.Spec.Target.Namespaces)
+	namespaces, err = r.GetNamespaces(ctx, replika)
 	if err != nil {
-		log.Log.Error(err, "can not get the namespaces to delete resources")
+		log.Log.Error(err, "Can not get the namespaces")
+	}
+
+	// Get the source manifest
+	log.Log.Info("Looking for source resource...")
+	source := unstructured.Unstructured{}
+	source.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   replika.Spec.Source.Group,
+		Kind:    replika.Spec.Source.Kind,
+		Version: replika.Spec.Source.Version,
+	})
+
+	err = r.Get(ctx, client.ObjectKey{
+		Namespace: replika.Spec.Source.Namespace,
+		Name:      replika.Spec.Source.Name,
+	}, &source)
+	if err != nil {
+		log.Log.Error(err, "Can not find the resource inside namespace '"+replika.Spec.Source.Namespace+"'")
+		time.Sleep(durationTime)
+	}
+	log.Log.Info("Source resource found successfully")
+
+	// Copy source object and clean trash from the manifest
+	target := source.DeepCopy()
+	unstructured.RemoveNestedField(target.Object, "metadata")
+	unstructured.RemoveNestedField(target.Object, "status")
+
+	// Set the necessary metadata
+	target.SetName(source.GetName())
+	target.SetAnnotations(source.GetAnnotations())
+
+	labels := make(map[string]string)
+	for k, v := range source.GetLabels() {
+		labels[k] = v
+	}
+	labels[resourceReplikaLabelCreatedKey] = resourceReplikaLabelCreatedValue
+	labels[resourceReplikaLabelPartKey] = replika.Name
+
+	target.SetLabels(labels)
+
+	// Create the resource inside target namespaces
+	// Needed to create a copy and change the namespace between loops
+	for _, ns := range namespaces {
+		// Avoid overwrite the source or blank namespaces
+		// TODO: review if this is needed
+		if ns == source.GetNamespace() || ns == "" {
+			continue
+		}
+
+		target.SetNamespace(ns)
+		err = r.UpdateTarget(ctx, target)
+		if err != nil {
+			log.Log.Error(err, "Can not update the resource inside namespace '"+ns+"'")
+		}
+	}
+
+	return err
+}
+
+// DeleteTargets Delete all the targets previously created from a source declared on a Replika
+func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav1alpha1.Replika) (err error) {
+
+	// Get all namespaces
+	namespaces, err := r.GetNamespaces(ctx, replika)
+	if err != nil {
+		log.Log.Error(err, "Can not get the namespaces to delete resources")
 	}
 
 	// Construct a target object
 	target := &unstructured.Unstructured{}
-	target.SetName(r.ReplikaInstance.Spec.Source.Name)
+	target.SetName(replika.Spec.Source.Name)
 	target.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   r.ReplikaInstance.Spec.Source.Group,
-		Kind:    r.ReplikaInstance.Spec.Source.Kind,
-		Version: r.ReplikaInstance.Spec.Source.Version,
+		Group:   replika.Spec.Source.Group,
+		Kind:    replika.Spec.Source.Kind,
+		Version: replika.Spec.Source.Version,
 	})
 
 	// Delete the resource inside target namespaces
 	for _, ns := range namespaces {
+		// Avoid blank namespaces
+		// TODO: Blank namespaces coming? should this be handled here?
+		if ns == "" {
+			continue
+		}
+
 		target.SetNamespace(ns)
 		err = r.Delete(ctx, target)
 		if err != nil {
-			log.Log.Error(err, "can not delete the resource inside namespace '"+ns+"'")
+			log.Log.Error(err, "Can not delete the resource inside namespace '"+ns+"'")
 		}
 	}
 
 	return err
 }
 
-// AsyncReconcile Syncs the manifests asynchronously
-func (r *ReplikaReconciler) AsyncReconcile(ctx context.Context) {
-	var err error
-
-	// Calculate the duration of the synchronization
-	var durationTime time.Duration
-	durationTime, err = time.ParseDuration(r.ReplikaInstance.Spec.Synchronization.Time)
-	if err != nil {
-		log.Log.Error(err, "can not parse the synchronization time.")
-	}
-
-	// Get a Go list of namespaces from the declared string
-	var namespaces []string
-	namespaces, err = r.GetNamespaces(r.ReplikaInstance.Spec.Target.Namespaces)
-	if err != nil {
-		log.Log.Error(err, "can not get the namespaces")
-	}
-
-	for {
-		// Get the source manifest
-		source := unstructured.Unstructured{}
-		source.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   r.ReplikaInstance.Spec.Source.Group,
-			Kind:    r.ReplikaInstance.Spec.Source.Kind,
-			Version: r.ReplikaInstance.Spec.Source.Version,
-		})
-
-		log.Log.Info("looking for source resource...")
-		err = r.Get(ctx, client.ObjectKey{
-			Namespace: r.ReplikaInstance.Spec.Source.Namespace,
-			Name:      r.ReplikaInstance.Spec.Source.Name,
-		}, &source)
-		if err != nil {
-			log.Log.Error(err, "can not find the resource inside namespace '"+r.ReplikaInstance.Spec.Source.Namespace+"'")
-			time.Sleep(durationTime)
-		}
-		log.Log.Info("source resource found successfully")
-
-		// Copy source object and clean trash from the manifest
-		target := source.DeepCopy()
-		unstructured.RemoveNestedField(target.Object, "metadata")
-		unstructured.RemoveNestedField(target.Object, "status")
-
-		// Set the necessary metadata
-		target.SetName(source.GetName())
-		target.SetAnnotations(source.GetAnnotations())
-
-		labels := make(map[string]string)
-		for k, v := range source.GetLabels() {
-			labels[k] = v
-		}
-		labels[resourceReplikaLabelCreatedKey] = resourceReplikaLabelCreatedValue
-		labels[resourceReplikaLabelPartKey] = r.ReplikaInstance.Name
-
-		target.SetLabels(labels)
-
-		// Create the resource inside target namespaces
-		// Needed to create a copy and change the namespace between loops
-		for _, ns := range namespaces {
-			target.SetNamespace(ns)
-
-			//
-			err = r.UpdateTarget(ctx, target)
-			if err != nil {
-				log.Log.Error(err, "can not update the resource inside namespace '"+ns+"'")
-			}
-		}
-
-		log.Log.Info("waiting for next review in " + durationTime.String())
-		// Sleep until next reconcile time
-		time.Sleep(durationTime)
-
-		// Build a killer for the goroutine
-		if r.QuitGoroutine {
-			return
-		}
-	}
-}
-
+// TODO: Review the permissions to have a least permissions policy
 //+kubebuilder:rbac:groups=replika.prosimcorp.com,resources=replikas,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=replika.prosimcorp.com,resources=replikas/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=replika.prosimcorp.com,resources=replikas/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -240,30 +272,71 @@ func (r *ReplikaReconciler) AsyncReconcile(ctx context.Context) {
 func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// Create the asynchronous reconciler by default
-	r.QuitGoroutine = false
+	// Create a place to store errors
+	var err error
 
-	// Get the content of the Replika
-	// Kill the synchronization and resources
+	// 1. Get the content of the Replika
 	replikaManifest := &replikav1alpha1.Replika{}
-	err := r.Get(ctx, req.NamespacedName, replikaManifest)
+	err = r.Get(ctx, req.NamespacedName, replikaManifest)
+
+	// 2. Check existance on the cluster
 	if err != nil {
-		r.QuitGoroutine = true
-		if !strings.Contains(err.Error(), "not found") {
-			log.Log.Error(err, "")
+
+		// 2.1 It does NOT exist: manage removal
+		if errors.IsNotFound(err) {
+			log.Log.Info("Replika resource not found. Ignoring since object must be deleted.")
+			return ctrl.Result{}, nil
 		}
-		err = r.DeleteTargets(ctx)
-		if err != nil {
-			log.Log.Error(err, "can not delete the replicas")
+
+		// 2.2 Failed to get the resource, requeue the request
+		log.Log.Error(err, "Error getting the Replika from the cluster")
+		return ctrl.Result{}, nil
+	}
+
+	// 3. Check if the Replika instance is marked to be deleted: indicated by the deletion timestamp being set
+	isReplikaMarkedToBeDeleted := replikaManifest.GetDeletionTimestamp() != nil
+	if isReplikaMarkedToBeDeleted {
+		if controllerutil.ContainsFinalizer(replikaManifest, replikaFinalizer) {
+			// Delete all created targets
+			err = r.DeleteTargets(ctx, replikaManifest)
+			if err != nil {
+				log.Log.Error(err, "")
+				return ctrl.Result{}, err
+			}
+
+			// Remove the finalizers on Replika CR
+			controllerutil.RemoveFinalizer(replikaManifest, replikaFinalizer)
+			err := r.Update(ctx, replikaManifest)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 		return ctrl.Result{}, nil
 	}
 
-	r.ReplikaInstance = replikaManifest.DeepCopy()
+	// 4. Add finalizer to the Replika CR
+	if !controllerutil.ContainsFinalizer(replikaManifest, replikaFinalizer) {
+		controllerutil.AddFinalizer(replikaManifest, replikaFinalizer)
+		err = r.Update(ctx, replikaManifest)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
-	// Launch an asynchronous reconciler
-	go r.AsyncReconcile(ctx)
-	return ctrl.Result{}, nil
+	// 5. The Replika CR already exist: manage the update
+	err = r.UpdateTargets(ctx, replikaManifest)
+	if err != nil {
+		log.Log.Error(err, "Can not update the targets for the Replika: "+replikaManifest.Name)
+	}
+
+	// 6. Schedule periodical request
+	RequeueTime, err := r.GetSynchronizationTime(replikaManifest)
+	if err != nil {
+		log.Log.Error(err, "Can not requeue the Replika: "+replikaManifest.Name)
+	}
+
+	log.Log.Info("Schedule synchronization in:" + RequeueTime.String())
+	return ctrl.Result{RequeueAfter: RequeueTime}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
