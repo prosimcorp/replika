@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -56,42 +57,55 @@ type ReplikaReconciler struct {
 }
 
 // GetNamespaces Returns the target namespaces of a Replika as a golang list
-// The namespace of the replicated source is not listed to avoid overwrites
-func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav1alpha1.Replika) ([]string, error) {
+// The namespace of the replicated source is NEVER listed to avoid overwrites
+func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav1alpha1.Replika) (processedNamespaces []string, err error) {
+	// List ALL namespaces without blacklisted ones
+	if replika.Spec.Target.Namespaces.MatchAll {
 
-	var replikaNamespaces, processedNamespaces []string
-
-	replikaNamespaces = replika.Spec.Target.Namespaces
-
-	// Empty list of targets, only 'default' included
-	if len(replikaNamespaces) == 0 {
-		if replika.Spec.Source.Namespace != defaultTargetNamespace {
-			return []string{defaultTargetNamespace}, nil
-		}
-	}
-
-	// Only one target. Target all namespaces?
-	if len(replikaNamespaces) == 1 && replikaNamespaces[0] == "*" {
-		// Get a list of all namespaces
 		namespaceList := &corev1.NamespaceList{}
-		err := r.List(ctx, namespaceList)
+		err = r.List(ctx, namespaceList)
 		if err != nil {
-			return nil, err
+			return processedNamespaces, err
 		}
 
 		// Convert Namespace Objects into Strings
+	namespaceLoop:
 		for _, v := range namespaceList.Items {
 			// Do NOT include the namespace of the replicated source to avoid possible overwrites
 			if v.GetName() == replika.Spec.Source.Namespace {
 				continue
 			}
+
+			// Exclude blacklisted namespaces
+			for _, excludedNs := range replika.Spec.Target.Namespaces.ExcludeFrom {
+				if excludedNs == v.GetName() {
+					continue namespaceLoop
+				}
+			}
 			processedNamespaces = append(processedNamespaces, v.GetName())
 		}
-		return processedNamespaces, nil
+		return processedNamespaces, err
 	}
 
-	// TODO: Loop over the list and check namespaces
-	return replikaNamespaces, nil
+	// Empty list of targets, only 'default' included
+	if len(replika.Spec.Target.Namespaces.ReplicateIn) == 0 {
+		if replika.Spec.Source.Namespace != defaultTargetNamespace {
+			processedNamespaces = append(processedNamespaces, defaultTargetNamespace)
+			return processedNamespaces, err
+		}
+		return processedNamespaces, err
+	}
+
+	// Loop and check the targets given by the user
+	var expression *regexp.Regexp
+	expression, err = regexp.Compile("[a-z0-9]([-a-z0-9]*[a-z0-9])?")
+
+	for _, v := range replika.Spec.Target.Namespaces.ReplicateIn {
+		if expression.Match([]byte(v)) && v != replika.Spec.Source.Namespace {
+			processedNamespaces = append(processedNamespaces, v)
+		}
+	}
+	return processedNamespaces, err
 }
 
 // GetSynchronizationTime return the spec.synchronization.time as duration, or default time on failures
@@ -206,12 +220,6 @@ func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav
 	// Create the resource inside target namespaces
 	// Needed to create a copy and change the namespace between loops
 	for _, ns := range namespaces {
-		// Avoid overwrite the source or blank namespaces
-		// TODO: review if this is needed
-		if ns == source.GetNamespace() || ns == "" {
-			continue
-		}
-
 		target.SetNamespace(ns)
 		err = r.UpdateTarget(ctx, target)
 		if err != nil {
@@ -242,12 +250,6 @@ func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav
 
 	// Delete the resource inside target namespaces
 	for _, ns := range namespaces {
-		// Avoid blank namespaces
-		// TODO: Blank namespaces coming? should this be handled here?
-		if ns == "" {
-			continue
-		}
-
 		target.SetNamespace(ns)
 		err = r.Delete(ctx, target)
 		if err != nil {
@@ -306,7 +308,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 			// Remove the finalizers on Replika CR
 			controllerutil.RemoveFinalizer(replikaManifest, replikaFinalizer)
-			err := r.Update(ctx, replikaManifest)
+			err = r.Update(ctx, replikaManifest)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -336,6 +338,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	log.Log.Info("Schedule synchronization in:" + RequeueTime.String())
+	r.test(ctx, replikaManifest)
 	return ctrl.Result{RequeueAfter: RequeueTime}, nil
 }
 
