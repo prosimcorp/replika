@@ -29,7 +29,7 @@ type SynchronizationSpec struct {
 
 //
 type ReplikaTargetSpec struct {
-	Namespaces string `json:"namespaces,omitempty"`
+	Namespaces []string `json:"namespaces,omitempty"`
 }
 
 //
@@ -45,9 +45,6 @@ type ReplikaSourceSpec struct {
 type ReplikaSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	// Overwrite the target or not
-	Overwrite bool `json:"mode,omitempty"`
 
 	// SynchronizationSpec defines the behavior of synchronization
 	Synchronization SynchronizationSpec `json:"synchronization"`
