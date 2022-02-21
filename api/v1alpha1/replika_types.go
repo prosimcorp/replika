@@ -27,12 +27,19 @@ type SynchronizationSpec struct {
 	Time string `json:"time"`
 }
 
-//
-type ReplikaTargetSpec struct {
-	Namespaces []string `json:"namespaces,omitempty"`
+// ReplikaTargetNamespacesSpec TODO
+type ReplikaTargetNamespacesSpec struct {
+	ReplicateIn []string `json:"replicateIn,omitempty"`
+	MatchAll    bool     `json:"matchAll"`
+	ExcludeFrom []string `json:"excludeFrom,omitempty"`
 }
 
-//
+// TODO
+type ReplikaTargetSpec struct {
+	Namespaces ReplikaTargetNamespacesSpec `json:"namespaces,omitempty"`
+}
+
+// TODO
 type ReplikaSourceSpec struct {
 	Group     string `json:"group"`
 	Version   string `json:"version"`
@@ -58,8 +65,9 @@ type ReplikaSpec struct {
 
 // ReplikaStatus defines the observed state of Replika
 type ReplikaStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+
+	// Conditions represent the latest available observations of an object's state
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 //+kubebuilder:object:root=true
