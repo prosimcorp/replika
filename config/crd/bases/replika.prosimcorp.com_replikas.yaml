@@ -9,13 +9,25 @@ metadata:
 spec:
   group: replika.prosimcorp.com
   names:
+    categories:
+    - replikas
     kind: Replika
     listKind: ReplikaList
     plural: replikas
     singular: replika
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="SourceSynced")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="SourceSynced")].reason
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Replika is the Schema for the replikas API
