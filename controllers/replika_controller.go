@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 )
 
 const (
@@ -76,7 +77,7 @@ type ReplikaReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	log := log.FromContext(ctx)
-	//log2.Print(log.GetSink())
+	result.RequeueAfter = 5 * time.Second
 
 	// 1. Get the content of the Replika
 	replikaManifest := &replikav1alpha1.Replika{}
@@ -96,7 +97,15 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return result, err
 	}
 
-	// 3. Check if the Replika instance is marked to be deleted: indicated by the deletion timestamp being set
+	// 3. Update the status before the requeue
+	defer func() {
+		err = r.Status().Update(ctx, replikaManifest)
+		if err != nil {
+			log.Error(err, "Failed to update the condition on replika: "+req.Name)
+		}
+	}()
+
+	// 4. Check if the Replika instance is marked to be deleted: indicated by the deletion timestamp being set
 	isReplikaMarkedToBeDeleted := replikaManifest.GetDeletionTimestamp() != nil
 	if isReplikaMarkedToBeDeleted {
 		if controllerutil.ContainsFinalizer(replikaManifest, replikaFinalizer) {
@@ -117,16 +126,23 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return result, err
 	}
 
-	// 4. Add finalizer to the Replika CR
+	// 5. Add finalizer to the Replika CR
 	if !controllerutil.ContainsFinalizer(replikaManifest, replikaFinalizer) {
 		controllerutil.AddFinalizer(replikaManifest, replikaFinalizer)
 		err = r.Update(ctx, replikaManifest)
 		if err != nil {
-			return ctrl.Result{}, err
+			return result, err
 		}
 	}
 
-	// 5. Schedule periodical request
+	// 6. The Replika CR already exist: manage the update
+	err = r.UpdateTargets(ctx, replikaManifest)
+	if err != nil {
+		log.Error(err, "Can not update the targets for the Replika: "+replikaManifest.Name)
+		return result, err
+	}
+
+	// 7. Schedule periodical request
 	RequeueTime, err := r.GetSynchronizationTime(replikaManifest)
 	if err != nil {
 		log.Error(err, "Can not requeue the Replika: "+replikaManifest.Name)
@@ -134,12 +150,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	result.RequeueAfter = RequeueTime
 	result.Requeue = true
 
-	// 6. The Replika CR already exist: manage the update
-	err = r.UpdateTargets(ctx, replikaManifest)
-	if err != nil {
-		log.Error(err, "Can not update the targets for the Replika: "+replikaManifest.Name)
-	}
-
+	// 8. Success, update the status
 	msg := "Source synchronization was successfully"
 	r.UpdateReplikaCondition(ctx, replikaManifest, r.NewReplikaCondition(ConditionTypeSourceSynced,
 		metav1.ConditionTrue,

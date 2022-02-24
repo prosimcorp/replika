@@ -44,24 +44,19 @@ func (r *ReplikaReconciler) GetReplikaCondition(replika *replikav1alpha1.Replika
 
 // UpdateReplikaCondition update or create a condition inside the status
 func (r *ReplikaReconciler) UpdateReplikaCondition(ctx context.Context, replika *replikav1alpha1.Replika, condition *metav1.Condition) (err error) {
+
 	// Get the condition
 	currentCondition := r.GetReplikaCondition(replika, condition.Type)
 
 	if currentCondition == nil {
 		// Create the condition when not existent
-		replika.Status.Conditions = append([]metav1.Condition{}, *condition)
+		replika.Status.Conditions = append(replika.Status.Conditions, *condition)
 	} else {
 		// Update the condition when existent.
 		currentCondition.Status = condition.Status
 		currentCondition.Reason = condition.Reason
 		currentCondition.Message = condition.Message
 		currentCondition.LastTransitionTime = metav1.Now()
-	}
-
-	// TODO: this step breaks the operator, check the condition
-	//err = r.Status().Update(ctx, replika)
-	if err != nil {
-		log.Log.Error(err, "Failed to update the condition on replika: "+replika.Name)
 	}
 
 	return err
