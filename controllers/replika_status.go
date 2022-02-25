@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"context"
 	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // https://github.com/external-secrets/external-secrets/blob/80545f4f183795ef193747fc959558c761b51c99/apis/externalsecrets/v1alpha1/externalsecret_types.go#L168
@@ -12,12 +10,29 @@ const (
 	// ConditionTypeSourceSynced indicates that the source was synchronizated or not
 	ConditionTypeSourceSynced = "SourceSynced"
 
-	ConditionReasonSourceNotFound             = "SourceNotFound"
-	ConditionReasonTargetNamespaceNotFound    = "TargetNamespaceNotFound"
-	ConditionReasonSourceNamespaceNotFound    = "SourceNamespaceNotFound"
-	ConditionReasonSourceReplicationFailed    = "SourceReplicationFailed"
-	ConditionReasonSourceReplicationInProcess = "SourceReplicationInProcess"
-	ConditionReasonSourceSynced               = "SourceSynced"
+	// Source not found
+	ConditionReasonSourceNotFound        = "SourceNotFound"
+	ConditionReasonSourceNotFoundMessage = "Source resource was not found"
+
+	// Target namespace not found
+	ConditionReasonTargetNamespaceNotFound        = "TargetNamespaceNotFound"
+	ConditionReasonTargetNamespaceNotFoundMessage = "A target namespace was not found"
+
+	// Replication failed
+	ConditionReasonSourceReplicationFailed        = "SourceReplicationFailed"
+	ConditionReasonSourceReplicationFailedMessage = "Error replicating the source on targets"
+
+	// Get existent target list
+	ConditionReasonTargetGetListFailed        = "TargetGetListFailed"
+	ConditionReasonTargetGetListFailedMessage = "Error getting the targets from the cluster"
+
+	// Target delete failed
+	ConditionReasonTargetDeleteFailed        = "TargetDeleteFailed"
+	ConditionReasonTargetDeleteFailedMessage = "Target resource failed on deletion"
+
+	// Success
+	ConditionReasonSourceSynced        = "SourceSynced"
+	ConditionReasonSourceSyncedMessage = "Source was successfully synchronized"
 )
 
 // NewReplikaCondition a set of default options for creating a Replika Condition.
@@ -42,8 +57,8 @@ func (r *ReplikaReconciler) GetReplikaCondition(replika *replikav1alpha1.Replika
 	return nil
 }
 
-// UpdateReplikaCondition update or create a condition inside the status
-func (r *ReplikaReconciler) UpdateReplikaCondition(ctx context.Context, replika *replikav1alpha1.Replika, condition *metav1.Condition) (err error) {
+// UpdateReplikaCondition update or create a new condition inside the status of the CR
+func (r *ReplikaReconciler) UpdateReplikaCondition(replika *replikav1alpha1.Replika, condition *metav1.Condition) {
 
 	// Get the condition
 	currentCondition := r.GetReplikaCondition(replika, condition.Type)
@@ -58,19 +73,4 @@ func (r *ReplikaReconciler) UpdateReplikaCondition(ctx context.Context, replika 
 		currentCondition.Message = condition.Message
 		currentCondition.LastTransitionTime = metav1.Now()
 	}
-
-	return err
-}
-
-// UpdateAndLogReplikaCondition update a condition on a replika status and throw the status message on logs
-func (r *ReplikaReconciler) UpdateAndLogReplikaCondition(ctx context.Context, replika *replikav1alpha1.Replika, condition *metav1.Condition) (err error) {
-
-	err = r.UpdateReplikaCondition(ctx, replika, condition)
-	if err != nil {
-		log.Log.Error(err, "Impossible to update the condition on replika "+replika.Name)
-		return err
-	}
-
-	log.Log.Info(condition.Message)
-	return err
 }
