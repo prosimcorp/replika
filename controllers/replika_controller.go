@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,36 +27,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
 )
 
 const (
-	defaultSynchronizationTime = "15s"
-	defaultTargetNamespace     = "default"
-
-	// The Replika CR which created the resource
-	resourceReplikaLabelPartKey   = "replika.prosimcorp.com/part-of"
-	resourceReplikaLabelPartValue = ""
-
-	// Who is managing the resources
-	resourceReplikaLabelCreatedKey   = "replika.prosimcorp.com/created-by"
-	resourceReplikaLabelCreatedValue = "replika-controller"
-
-	// Define the finalizers for handling deletion
-	replikaFinalizer = "replika.prosimcorp.com/finalizer"
-)
-
-// All the sentences thrown on logs
-const (
-	ResourceNotFound             = "Can not find the resource inside namespace '%s'"
-	NamespaceNotFound            = "Can not get the namespaces"
-	ResourceCreationFailed       = "Can not create the resource inside namespace '%s'"
-	ResourceUpdateFailed         = "Can not update the resource inside namespace '%s'"
-	ScheduleSynchronization      = "Schedule synchronization in: %s"
-	SourceSynchronizationSucceed = "Source synchronization was successfully"
-	ReplikaTargetsUpdateFailed   = "Can not update the targets for the Replika: %s"
-	ReplikaRequeueFailed         = "Can not requeue the Replika: %s"
+	defaultSyncTimeForExitWithError = 5 * time.Second
+	scheduleSynchronization         = "Schedule synchronization in: %s"
 )
 
 // ReplikaReconciler reconciles a Replika object
@@ -76,8 +52,7 @@ type ReplikaReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
-	log := log.FromContext(ctx)
-	result.RequeueAfter = 5 * time.Second
+	result.RequeueAfter = defaultSyncTimeForExitWithError
 
 	// 1. Get the content of the Replika
 	replikaManifest := &replikav1alpha1.Replika{}
@@ -85,15 +60,17 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// 2. Check existance on the cluster
 	if err != nil {
+		result = ctrl.Result{}
 
 		// 2.1 It does NOT exist: manage removal
 		if errors.IsNotFound(err) {
-			log.Info("Replika resource not found. Ignoring since object must be deleted.")
+			LogInfof(ctx, "Replika resource not found. Ignoring since object must be deleted.")
+			err = nil
 			return result, err
 		}
 
 		// 2.2 Failed to get the resource, requeue the request
-		log.Error(err, "Error getting the Replika from the cluster")
+		LogErrorf(ctx, err, "Error getting the Replika from the cluster")
 		return result, err
 	}
 
@@ -101,7 +78,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	defer func() {
 		err = r.Status().Update(ctx, replikaManifest)
 		if err != nil {
-			log.Error(err, "Failed to update the condition on replika: "+req.Name)
+			LogErrorf(ctx, err, "Failed to update the condition on replika: %s", req.Name)
 		}
 	}()
 
@@ -112,7 +89,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			// Delete all created targets
 			err = r.DeleteTargets(ctx, replikaManifest)
 			if err != nil {
-				log.Error(err, "Unable to delete the targets")
+				LogErrorf(ctx, err, "Unable to delete the targets")
 				return result, err
 			}
 
@@ -138,28 +115,25 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	// 6. The Replika CR already exist: manage the update
 	err = r.UpdateTargets(ctx, replikaManifest)
 	if err != nil {
-		log.Error(err, "Can not update the targets for the Replika: "+replikaManifest.Name)
+		LogErrorf(ctx, err, "Can not update the targets for the Replika: "+replikaManifest.Name)
 		return result, err
 	}
 
 	// 7. Schedule periodical request
 	RequeueTime, err := r.GetSynchronizationTime(replikaManifest)
 	if err != nil {
-		log.Error(err, "Can not requeue the Replika: "+replikaManifest.Name)
+		LogErrorf(ctx, err, "Can not requeue the Replika: "+replikaManifest.Name)
 	}
 	result.RequeueAfter = RequeueTime
-	result.Requeue = true
 
 	// 8. Success, update the status
-	msg := "Source synchronization was successfully"
-	r.UpdateReplikaCondition(ctx, replikaManifest, r.NewReplikaCondition(ConditionTypeSourceSynced,
+	r.UpdateReplikaCondition(replikaManifest, r.NewReplikaCondition(ConditionTypeSourceSynced,
 		metav1.ConditionTrue,
 		ConditionReasonSourceSynced,
-		msg,
+		ConditionReasonSourceSyncedMessage,
 	))
-	log.Info(msg)
 
-	log.Info(ScheduleSynchronization + RequeueTime.String())
+	LogInfof(ctx, scheduleSynchronization, RequeueTime.String())
 	return result, err
 }
 
