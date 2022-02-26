@@ -1,0 +1,52 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: replika.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Replika is the Schema for the each Replika CR
+      displayName: Replika
+      kind: Replika
+      name: replikas.replika.prosimcorp.com
+      version: v1alpha1
+  description: A Kubernetes operator to replicate a resource across namespaces
+  displayName: Replika
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - replika
+  - replica
+  - replication
+  - prosimcorp
+  links:
+  - name: Replika
+    url: https://replika.domain
+  maintainers:
+  - email: donfumero@gmail.com
+    name: Alby Hernández
+  - email: develolux@gmail.com
+    name: Sebastián Vargas
+  maturity: alpha
+  provider:
+    name: Prosimcorp
+  version: 0.0.0
