@@ -16,13 +16,13 @@ import (
 const (
 	defaultSynchronizationTime = 15 * time.Second
 	defaultTargetNamespace     = "default"
-	namespaceRegularExpression = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+	namespaceRegularExpression = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
 
 	// The Replika CR which created the resource
-	resourceReplikaLabelPartKey   = "replika.prosimcorp.com/part-of"
-	resourceReplikaLabelPartValue = ""
+	resourceReplikaLabelPartOfKey   = "replika.prosimcorp.com/part-of"
+	resourceReplikaLabelPartOfValue = ""
 
-	// Who is managing the resources
+	// Who is managing the child resources
 	resourceReplikaLabelCreatedKey   = "replika.prosimcorp.com/created-by"
 	resourceReplikaLabelCreatedValue = "replika-controller"
 
@@ -62,6 +62,8 @@ func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav
 
 			// Exclude blacklisted namespaces
 			for _, excludedNs := range replika.Spec.Target.Namespaces.ExcludeFrom {
+
+				// Namespaces must be well formatted
 				if !expression.Match([]byte(excludedNs)) {
 					err = NewErrorf(namespaceFormatError, excludedNs)
 					return namespaces, err
@@ -174,7 +176,7 @@ func (r *ReplikaReconciler) GetTargets(ctx context.Context, replika *replikav1al
 		labels[k] = v
 	}
 	labels[resourceReplikaLabelCreatedKey] = resourceReplikaLabelCreatedValue
-	labels[resourceReplikaLabelPartKey] = replika.Name
+	labels[resourceReplikaLabelPartOfKey] = replika.Name
 
 	target.SetLabels(labels)
 
@@ -253,7 +255,7 @@ func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav
 	})
 
 	// Look for the targets inside the cluster
-	err = r.List(ctx, targets, client.MatchingLabels{resourceReplikaLabelPartKey: replika.Name})
+	err = r.List(ctx, targets, client.MatchingLabels{resourceReplikaLabelPartOfKey: replika.Name})
 	if err != nil {
 		r.UpdateReplikaCondition(replika, r.NewReplikaCondition(ConditionTypeSourceSynced,
 			metav1.ConditionFalse,

@@ -20,26 +20,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// SynchronizationSpec defines the spec of the synchronization section of a Replika
 type SynchronizationSpec struct {
 	Time string `json:"time"`
 }
 
-// ReplikaTargetNamespacesSpec TODO
+// ReplikaTargetNamespacesSpec defines the spec of the target namespaces section of a Replika
 type ReplikaTargetNamespacesSpec struct {
 	ReplicateIn []string `json:"replicateIn,omitempty"`
 	MatchAll    bool     `json:"matchAll"`
 	ExcludeFrom []string `json:"excludeFrom,omitempty"`
 }
 
-// TODO
+// ReplikaTargetSpec defines the spec of the target section of a Replica
 type ReplikaTargetSpec struct {
 	Namespaces ReplikaTargetNamespacesSpec `json:"namespaces,omitempty"`
 }
 
-// TODO
+// ReplikaSourceSpec defines the spec of the source section of a Replika
 type ReplikaSourceSpec struct {
 	Group     string `json:"group"`
 	Version   string `json:"version"`
@@ -48,10 +48,8 @@ type ReplikaSourceSpec struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// ReplikaSpec defines the desired state of Replika
+// ReplikaSpec defines the desired state of a Replika
 type ReplikaSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
 	// SynchronizationSpec defines the behavior of synchronization
 	Synchronization SynchronizationSpec `json:"synchronization"`
@@ -63,7 +61,7 @@ type ReplikaSpec struct {
 	Target ReplikaTargetSpec `json:"target"`
 }
 
-// ReplikaStatus defines the observed state of Replika
+// ReplikaStatus defines the observed state of a Replika
 type ReplikaStatus struct {
 
 	// Conditions represent the latest available observations of an object's state
@@ -77,7 +75,7 @@ type ReplikaStatus struct {
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"SourceSynced\")].reason",description=""
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// Replika is the Schema for the replikas API
+// Replika is the Schema for the each Replika CR
 type Replika struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -88,7 +86,7 @@ type Replika struct {
 
 //+kubebuilder:object:root=true
 
-// ReplikaList contains a list of Replika
+// ReplikaList contains a list of Replika resources
 type ReplikaList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

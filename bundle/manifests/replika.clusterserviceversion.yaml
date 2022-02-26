@@ -1,0 +1,249 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "replika.prosimcorp.com/v1alpha1",
+          "kind": "Replika",
+          "metadata": {
+            "name": "replika-sample"
+          },
+          "spec": {
+            "source": {
+              "group": "",
+              "kind": "ConfigMap",
+              "name": "sample-configmap",
+              "namespace": "default",
+              "version": "v1"
+            },
+            "synchronization": {
+              "time": "20s"
+            },
+            "target": {
+              "namespaces": {
+                "excludeFrom": [
+                  "kube-system",
+                  "kube-public",
+                  "kube-node-lease",
+                  "default"
+                ],
+                "matchAll": true,
+                "replicateIn": []
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.16.0+git
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: replika.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Replika is the Schema for the each Replika CR
+      displayName: Replika
+      kind: Replika
+      name: replikas.replika.prosimcorp.com
+      version: v1alpha1
+  description: A Kubernetes operator to replicate a resource across namespaces
+  displayName: Replika
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - replika.prosimcorp.com
+          resources:
+          - replikas
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - replika.prosimcorp.com
+          resources:
+          - replikas/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - replika.prosimcorp.com
+          resources:
+          - replikas/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: replika-controller-manager
+      deployments:
+      - name: replika-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                image: prosimcorp/replika:latest
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: replika-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: replika-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - replika
+  - replica
+  - replication
+  - prosimcorp
+  links:
+  - name: Replika
+    url: https://replika.domain
+  maintainers:
+  - email: donfumero@gmail.com
+    name: Alby Hernández
+  - email: develolux@gmail.com
+    name: Sebastián Vargas
+  maturity: alpha
+  provider:
+    name: Prosimcorp
+  version: 0.0.1
