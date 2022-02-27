@@ -79,15 +79,6 @@ help: ## Display this help.
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-.PHONY: dry-run
-dry-run: manifests kustomize kubectl-slice ## Generate the manifests to package them later in the way you want.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	mkdir -p dry-run
-	$(KUSTOMIZE) build config/default > dry-run/manifests.yaml
-	$(KUBECTL_SLICE) --input-file=dry-run/manifests.yaml --output-dir=dry-run
-	@rm dry-run/manifests.yaml dry-run/kustomization.yaml
-	cd dry-run && $(KUSTOMIZE) create --autodetect
-
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -179,6 +170,15 @@ GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
 endef
+
+.PHONY: kustomization-build
+kustomization-build: manifests kustomize kubectl-slice ## Generate the manifests to package them later in the way you want.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	mkdir -p manifests
+	$(KUSTOMIZE) build config/default > manifests/manifests.yaml
+	$(KUBECTL_SLICE) --input-file=manifests/manifests.yaml --output-dir=manifests
+	@rm manifests/manifests.yaml manifests/kustomization.yaml || true
+	cd manifests && $(KUSTOMIZE) create --autodetect
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.

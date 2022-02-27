@@ -25,4 +25,4 @@ testbin/*
 *~
 
 # Exported manifests
-dry-run/
+manifests/
