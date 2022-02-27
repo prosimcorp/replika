@@ -1,11 +1,8 @@
 domain: prosimcorp.com
 layout:
 - go.kubebuilder.io/v3
-plugins:
-  manifests.sdk.operatorframework.io/v2: {}
-  scorecard.sdk.operatorframework.io/v2: {}
 projectName: replika
-repo: github.com/prosimcorp/replika
+repo: prosimcorp/replika
 resources:
 - api:
     crdVersion: v1
@@ -14,6 +11,6 @@ resources:
   domain: prosimcorp.com
   group: replika
   kind: Replika
-  path: github.com/prosimcorp/replika/api/v1alpha1
+  path: prosimcorp/replika/api/v1alpha1
   version: v1alpha1
 version: "3"

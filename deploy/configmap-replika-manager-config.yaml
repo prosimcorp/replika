@@ -11,7 +11,9 @@ data:
       port: 9443
     leaderElection:
       leaderElect: true
-      resourceName: ed4e541f.prosimcorp.com
+      resourceName: bdf6c878.prosimcorp.com
 kind: ConfigMap
 metadata:
   name: replika-manager-config
+  namespace: replika
+

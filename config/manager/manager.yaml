@@ -31,7 +31,6 @@ spec:
         - /manager
         args:
         - --leader-elect
-        - "--metrics-bind-address=:8080"
         image: controller:latest
         name: manager
         securityContext:
@@ -48,7 +47,6 @@ spec:
             port: 8081
           initialDelaySeconds: 5
           periodSeconds: 10
-        # TODO: Always iterate to adjust the resources accordingly based on the project requirements.
         # More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
         resources:
           limits:

@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
-	"github.com/prosimcorp/replika/controllers"
+	replikav1alpha1 "prosimcorp/replika/api/v1alpha1"
+	"prosimcorp/replika/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -58,7 +58,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
-		Development: false,
+		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -71,7 +71,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "ed4e541f.prosimcorp.com",
+		LeaderElectionID:       "bdf6c878.prosimcorp.com",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
