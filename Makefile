@@ -174,6 +174,7 @@ endef
 .PHONY: kustomization-build
 kustomization-build: manifests kustomize kubectl-slice ## Generate the manifests to package them later in the way you want.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	rm -rf manifests/*
 	mkdir -p manifests
 	$(KUSTOMIZE) build config/default > manifests/manifests.yaml
 	$(KUBECTL_SLICE) --input-file=manifests/manifests.yaml --output-dir=manifests

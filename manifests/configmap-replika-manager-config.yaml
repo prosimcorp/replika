@@ -15,5 +15,5 @@ data:
 kind: ConfigMap
 metadata:
   name: replika-manager-config
-  namespace: replika-system
+  namespace: replika
 
