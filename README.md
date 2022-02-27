@@ -52,7 +52,7 @@ This will invoke `docker` under the hoods
 make docker-build docker-push
 ```
 
-Generate the standalone manifests to build packages for Helm
+Generate and prepare the bunch of manifests to do the release
 ```console
 make dry-run
 ```
