@@ -80,10 +80,13 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: dry-run
-dry-run: manifests ## Generate the manifests to package them later in the way you want.
+dry-run: manifests kustomize kubectl-slice ## Generate the manifests to package them later in the way you want.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	mkdir -p dry-run
 	$(KUSTOMIZE) build config/default > dry-run/manifests.yaml
+	$(KUBECTL_SLICE) --input-file=dry-run/manifests.yaml --output-dir=dry-run
+	@rm dry-run/manifests.yaml dry-run/kustomization.yaml
+	cd dry-run && $(KUSTOMIZE) create --autodetect
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -150,12 +153,18 @@ controller-gen: ## Download controller-gen locally if necessary.
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 .PHONY: kustomize
 kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+	#$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v4@latest)
 
 ENVTEST = $(shell pwd)/bin/setup-envtest
 .PHONY: envtest
 envtest: ## Download envtest-setup locally if necessary.
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+
+KUBECTL_SLICE = $(shell pwd)/bin/kubectl-slice
+.PHONY: kubectl-slice
+kubectl-slice: ## Download kubectl-slice locally if necessary.
+	$(call go-get-tool,$(KUBECTL_SLICE),github.com/patrickdappollonio/kubectl-slice@latest)
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
