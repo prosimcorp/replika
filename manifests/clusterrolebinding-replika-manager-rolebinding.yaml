@@ -9,5 +9,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: replika-controller-manager
-  namespace: replika-system
+  namespace: replika
 
