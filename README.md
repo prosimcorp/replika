@@ -124,14 +124,6 @@ the process, the steps are described in the following recipe:
     make kustomization-build
     ```
 
-5. Generate and push a bundle for OLM (i.e. operatorhub.io)
-
-   > This will invoke `olm` CLI on under the hoods
-
-    ```console
-    make bundle bundle-build bundle-push
-    ```
-
 ## Example
 
 To replicate resources using this operator you will need to create a CR of kind Replika. You can find the spec samples 
@@ -178,5 +170,11 @@ ignores your destruction desires. For example, it will not replicate sources of 
 could happen when the target namespace is the same as the source namespace, because it would overwrite the source.
 Don't worry, at ProsimCorp we are used to failing a lot, so we design our tools to avoid out own failures.
 
-# References
-[Operator SDK tutorial for Go-based Operators](https://docs.openshift.com/container-platform/4.7/operators/operator_sdk/golang/osdk-golang-tutorial.html)
+## How to collaborate
+
+This project is done on top of Kubebuilder, so read about that project before collaborating. Of course, we are open to 
+external collaborations for this project. For doing it you must fork the repository, make your changes to the code and 
+open a PR. The code will be reviewed and tested (always)
+
+> We are developers and hate bad code. For that reason we ask you the highest quality on each line of code to improve
+> this project on each iteration.
