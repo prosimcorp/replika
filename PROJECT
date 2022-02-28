@@ -2,7 +2,7 @@ domain: prosimcorp.com
 layout:
 - go.kubebuilder.io/v3
 projectName: replika
-repo: prosimcorp/replika
+repo: github.com/prosimcorp/replika
 resources:
 - api:
     crdVersion: v1
@@ -11,6 +11,6 @@ resources:
   domain: prosimcorp.com
   group: replika
   kind: Replika
-  path: prosimcorp/replika/api/v1alpha1
+  path: github.com/prosimcorp/replika/api/v1alpha1
   version: v1alpha1
 version: "3"
