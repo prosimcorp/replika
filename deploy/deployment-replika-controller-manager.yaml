@@ -42,7 +42,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: prosimcorp/replika:v0.1.0
+        image: prosimcorp/replika:v0.1.1
         livenessProbe:
           httpGet:
             path: /healthz
