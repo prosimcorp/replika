@@ -69,7 +69,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		}
 
 		// 2.2 Failed to get the resource, requeue the request
-		LogErrorf(ctx, err, "Error getting the Replika from the cluster")
+		LogInfof(ctx, "Error getting the Replika from the cluster")
 		return result, err
 	}
 
@@ -77,7 +77,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	defer func() {
 		err = r.Status().Update(ctx, replikaManifest)
 		if err != nil {
-			LogErrorf(ctx, err, "Failed to update the condition on replika: %s", req.Name)
+			LogInfof(ctx, "Failed to update the condition on replika: %s", req.Name)
 		}
 	}()
 
@@ -88,7 +88,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			// Delete all created targets
 			err = r.DeleteTargets(ctx, replikaManifest)
 			if err != nil {
-				LogErrorf(ctx, err, "Unable to delete the targets")
+				LogInfof(ctx, "Unable to delete the targets")
 				return result, err
 			}
 
@@ -114,14 +114,14 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	// 6. The Replika CR already exist: manage the update
 	err = r.UpdateTargets(ctx, replikaManifest)
 	if err != nil {
-		LogErrorf(ctx, err, "Can not update the targets for the Replika: "+replikaManifest.Name)
+		LogInfof(ctx, "Can not update the targets for the Replika: "+replikaManifest.Name)
 		return result, err
 	}
 
 	// 7. Schedule periodical request
 	RequeueTime, err := r.GetSynchronizationTime(replikaManifest)
 	if err != nil {
-		LogErrorf(ctx, err, "Can not requeue the Replika: "+replikaManifest.Name)
+		LogInfof(ctx, "Can not requeue the Replika: "+replikaManifest.Name)
 	}
 	result.RequeueAfter = RequeueTime
 
