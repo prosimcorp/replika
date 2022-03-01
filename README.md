@@ -40,32 +40,59 @@ the tag of the version you want to deploy as follows:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- https://github.com/prosimcorp/replika//manifests/?ref=main
+- https://github.com/prosimcorp/replika//deploy/?ref=main
 ```
 
 ## RBAC
 
 We designed the operator to be able to replicate any kind of resource in a Kubernetes cluster, but by design, Kubernetes
 permissions are always only additive. This means that we had to grant only some resources to be replicated by default,
-such as Secrets and ConfigMaps. But you can grant other kind of resources just patching a role in our deployment manifests
-as follows:
+such as Secrets and ConfigMaps. But you can replicate other kind of resources just granting some permissions to the 
+ServiceAccount of the controller as follows:
 
 ```yaml
+# clusterRole-replika-custom-resources.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+   name: replika-custom-resources
+rules:
+   - apiGroups:
+        - ""
+     resources:
+        - AlertmanagerConfigs
+     verbs:
+        - create
+        - delete
+        - get
+        - list
+        - patch
+        - update
+        - watch
+---
+# clusterRoleBinding-replika-custom-resources.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+   name: replika-custom-resources
+roleRef:
+   apiGroup: rbac.authorization.k8s.io
+   kind: ClusterRole
+   name: replika-custom-resources
+subjects:
+   - kind: ServiceAccount
+     name: replika-controller-manager
+     namespace: replika
+---
+# kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- https://github.com/prosimcorp/replika//manifests/?ref=main
-  
-patches:
-  - target:
-      group: rbac.authorization.k8s.io
-      version: v1
-      kind: ClusterRole
-      name: replika-manager-role
-    patch: |-
-      - op: add
-        path: "/rules/0/resources/-"
-        value: "AlertmanagerConfig"
+   - https://github.com/prosimcorp/replika//deploy/?ref=main
+   
+   # Add your custom resources
+   - clusterRole-replika-custom-resources.yaml
+   - clusterRoleBinding-replika-custom-resources.yaml
 ```
 
 ## How to develop
@@ -129,7 +156,18 @@ the process, the steps are described in the following recipe:
 To replicate resources using this operator you will need to create a CR of kind Replika. You can find the spec samples 
 for all the versions of the resource in the [examples directory](./config/samples)
 
-You may prefer to learn directly from an example, so let's explain it:
+You may prefer to learn directly from an example, so let's explain it replicating a ConfigMap resource:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-configmap
+data:
+  example-key: value
+```
+
+Now use a Replika CR to replicate this resource across all namespaces, excluding some sensitive ones:
 
 ```yaml
 apiVersion: replika.prosimcorp.com/v1alpha1

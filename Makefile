@@ -83,9 +83,9 @@ kustomization-build: manifests kustomize kubectl-slice ## Generate the manifests
 	rm -rf deploy/*
 	mkdir -p deploy
 	$(KUSTOMIZE) build config/default > deploy/manifests.yaml
-	$(KUBECTL_SLICE) --input-file=deploy/manifests.yaml --output-dir=deploy
-	@rm deploy/manifests.yaml deploy/kustomization.yaml || true
-	cd deploy && $(KUSTOMIZE) create --autodetect
+	$(KUBECTL_SLICE) --input-file=deploy/manifests.yaml --output-dir=deploy --template="{{.kind|lower}}/{{.metadata.name|dottodash}}.yaml"
+	@rm deploy/manifests.yaml || true
+	cd deploy && $(KUSTOMIZE) create --autodetect --recursive
 
 ##@ Deployment
 
