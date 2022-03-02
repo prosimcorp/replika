@@ -257,11 +257,6 @@ func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav
 	// Look for the targets inside the cluster
 	err = r.List(ctx, targets, client.MatchingLabels{resourceReplikaLabelPartOfKey: replika.Name})
 	if err != nil {
-		r.UpdateReplikaCondition(replika, r.NewReplikaCondition(ConditionTypeSourceSynced,
-			metav1.ConditionFalse,
-			ConditionReasonTargetGetListFailed,
-			ConditionReasonTargetGetListFailedMessage,
-		))
 		return err
 	}
 
@@ -269,12 +264,6 @@ func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav
 	for i := range targets.Items {
 		err = r.Delete(ctx, &targets.Items[i])
 		if err != nil {
-			r.UpdateReplikaCondition(replika, r.NewReplikaCondition(ConditionTypeSourceSynced,
-				metav1.ConditionFalse,
-				ConditionReasonTargetDeleteFailed,
-				ConditionReasonTargetDeleteFailedMessage,
-			))
-
 			return err
 		}
 	}

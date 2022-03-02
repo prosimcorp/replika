@@ -22,14 +22,6 @@ const (
 	ConditionReasonSourceReplicationFailed        = "SourceReplicationFailed"
 	ConditionReasonSourceReplicationFailedMessage = "Error replicating the source on targets"
 
-	// Get existent target list
-	ConditionReasonTargetGetListFailed        = "TargetGetListFailed"
-	ConditionReasonTargetGetListFailedMessage = "Error getting the targets from the cluster"
-
-	// Target delete failed
-	ConditionReasonTargetDeleteFailed        = "TargetDeleteFailed"
-	ConditionReasonTargetDeleteFailedMessage = "Target resource failed on deletion"
-
 	// Success
 	ConditionReasonSourceSynced        = "SourceSynced"
 	ConditionReasonSourceSyncedMessage = "Source was successfully synchronized"
