@@ -18,15 +18,15 @@ package controllers
 
 import (
 	"context"
-	"time"
-
-	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
+
 	"k8s.io/apimachinery/pkg/runtime"
+	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -77,7 +77,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	defer func() {
 		err = r.Status().Update(ctx, replikaManifest)
 		if err != nil {
-			LogInfof(ctx, "Failed to update the condition on replika: %s", req.Name)
+			LogInfof(ctx, "Failed to update the conditionnnnnnn on replika: %s", req.Name)
 		}
 	}()
 

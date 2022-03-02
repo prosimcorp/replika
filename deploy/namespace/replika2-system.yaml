@@ -3,5 +3,5 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: replika
+  name: replika2-system
 

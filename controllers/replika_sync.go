@@ -5,11 +5,11 @@ import (
 	"regexp"
 	"time"
 
-	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
