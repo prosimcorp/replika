@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
 )
 
 // https://github.com/external-secrets/external-secrets/blob/80545f4f183795ef193747fc959558c761b51c99/apis/externalsecrets/v1alpha1/externalsecret_types.go#L168

@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: bdf6c878.prosimcorp.com
+  resourceName: 562e2a83.prosimcorp.com

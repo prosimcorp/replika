@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	replikav1alpha1 "github.com/prosimcorp/replika/api/v1alpha1"
-	"github.com/prosimcorp/replika/controllers"
+	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
+	"prosimcorp.com/replika/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -71,8 +71,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		//LeaderElectionID:       "bdf6c878.prosimcorp.com",
-		LeaderElectionID: "ed4e541f.prosimcorp.com",
+		LeaderElectionID:       "562e2a83.prosimcorp.com",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

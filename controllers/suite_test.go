@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	replikav1alpha1 "prosimcorp/replika/api/v1alpha1"
+	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

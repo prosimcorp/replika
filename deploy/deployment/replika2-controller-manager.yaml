@@ -3,8 +3,8 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: replika-controller-manager
-  namespace: replika
+  name: replika2-controller-manager
+  namespace: replika2-system
 spec:
   replicas: 1
   selector:
@@ -42,7 +42,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: prosimcorp/replika:v0.2.0
+        image: prosimcorp/replika:v0.2.1
         livenessProbe:
           httpGet:
             path: /healthz
@@ -67,6 +67,6 @@ spec:
           allowPrivilegeEscalation: false
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: replika-controller-manager
+      serviceAccountName: replika2-controller-manager
       terminationGracePeriodSeconds: 10
 
