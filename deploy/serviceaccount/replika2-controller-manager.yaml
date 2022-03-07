@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: replika2-controller-manager
-  namespace: replika2-system
-

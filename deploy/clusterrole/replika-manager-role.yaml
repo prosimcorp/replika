@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: replika2-manager-role
+  name: replika-manager-role
 rules:
 - apiGroups:
   - ""
