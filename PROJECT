@@ -1,7 +1,7 @@
 domain: prosimcorp.com
 layout:
 - go.kubebuilder.io/v3
-projectName: replika2
+projectName: replika
 repo: prosimcorp.com/replika
 resources:
 - api:

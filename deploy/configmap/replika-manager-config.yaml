@@ -14,6 +14,6 @@ data:
       resourceName: 562e2a83.prosimcorp.com
 kind: ConfigMap
 metadata:
-  name: replika2-manager-config
-  namespace: replika2-system
+  name: replika-manager-config
+  namespace: replika
 
