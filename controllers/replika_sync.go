@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/types"
 	"regexp"
 	"time"
 
@@ -137,8 +138,8 @@ func (r *ReplikaReconciler) GetSource(ctx context.Context, replika *replikav1alp
 	return source, err
 }
 
-// GetTargets return a list with all the targets that will be created using the source
-func (r *ReplikaReconciler) GetTargets(ctx context.Context, replika *replikav1alpha1.Replika) (targets []unstructured.Unstructured, err error) {
+// BuildTargets return a list with all the targets that will be created using the source
+func (r *ReplikaReconciler) BuildTargets(ctx context.Context, replika *replikav1alpha1.Replika) (targets []unstructured.Unstructured, err error) {
 
 	// Get the source from a replika
 	var source *unstructured.Unstructured
@@ -206,12 +207,17 @@ func (r *ReplikaReconciler) UpdateTarget(ctx context.Context, target *unstructur
 		return err
 	}
 
+	// Update the object
+	patch, err := target.MarshalJSON()
+	err = r.Patch(context.Background(), target, client.RawPatch(types.MergePatchType, patch))
+
 	// Objects in Kubernetes are uniquely identified
 	// Set target UID to the UID received from de created resource
-	target.SetUID(tmpTarget.GetUID())
+	//target.SetUID(tmpTarget.GetUID())
 
-	// Update the object
-	err = r.Update(ctx, target.DeepCopy())
+	//res := target.DeepCopy()
+	//res.SetResourceVersion(tmpTarget.GetResourceVersion())
+	//err = r.Update(ctx, target.DeepCopy())
 
 	return err
 }
@@ -221,7 +227,7 @@ func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav
 
 	// Get a list of manifests for all the targets
 	var targets []unstructured.Unstructured
-	targets, err = r.GetTargets(ctx, replika)
+	targets, err = r.BuildTargets(ctx, replika)
 	if err != nil {
 		return err
 	}
