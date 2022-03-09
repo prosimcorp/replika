@@ -209,15 +209,7 @@ func (r *ReplikaReconciler) UpdateTarget(ctx context.Context, target *unstructur
 
 	// Update the object
 	patch, err := target.MarshalJSON()
-	err = r.Patch(context.Background(), target, client.RawPatch(types.MergePatchType, patch))
-
-	// Objects in Kubernetes are uniquely identified
-	// Set target UID to the UID received from de created resource
-	//target.SetUID(tmpTarget.GetUID())
-
-	//res := target.DeepCopy()
-	//res.SetResourceVersion(tmpTarget.GetResourceVersion())
-	//err = r.Update(ctx, target.DeepCopy())
+	err = r.Patch(ctx, target, client.RawPatch(types.MergePatchType, patch))
 
 	return err
 }
