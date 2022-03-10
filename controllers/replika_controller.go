@@ -31,6 +31,13 @@ import (
 const (
 	defaultSyncTimeForExitWithError = 10 * time.Second
 	scheduleSynchronization         = "Schedule synchronization in: %s"
+	replikaNotFoundError            = "Replika resource not found. Ignoring since object must be deleted."
+	replikaRetrievalError           = "Error getting the Replika from the cluster"
+	targetsDeletionError            = "Unable to delete the targets"
+	replikaFinalizersUpdateError    = "Failed to update finalizer of replika: %s"
+	replikaConditionUpdateError     = "Failed to update the condition on replika: %s"
+	replikaSyncTimeRetrievalError   = "Can not get synchronization time from the Replika: %s"
+	updateTargetsError              = "Can not update the targets for the Replika: %s"
 )
 
 // ReplikaReconciler reconciles a Replika object
@@ -51,34 +58,21 @@ type ReplikaReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
 func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 
-	//_ = log.FromContext(ctx)
-
-	//result = ctrl.Result{
-	//	//RequeueAfter: defaultSyncTimeForExitWithError,
-	//	RequeueAfter: 20 * time.Second,
-	//}
-
-	//LogInfof(ctx, "mensajito")
-
-	//log.Log.Info("sdadsadsadsad")
-	//return ctrl.Result{Requeue: false}, nil
-
 	//1. Get the content of the Replika
 	replikaManifest := &replikav1alpha1.Replika{}
 	err = r.Get(ctx, req.NamespacedName, replikaManifest)
 
 	// 2. Check existance on the cluster
 	if err != nil {
-		//result = ctrl.Result{}
 
 		// 2.1 It does NOT exist: manage removal
 		if err = client.IgnoreNotFound(err); err == nil {
-			LogInfof(ctx, "Replika resource not found. Ignoring since object must be deleted.")
+			LogInfof(ctx, replikaNotFoundError)
 			return result, err
 		}
 
 		// 2.2 Failed to get the resource, requeue the request
-		LogInfof(ctx, "Error getting the Replika from the cluster")
+		LogInfof(ctx, replikaRetrievalError)
 		return result, err
 	}
 
@@ -88,7 +82,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			// Delete all created targets
 			err = r.DeleteTargets(ctx, replikaManifest)
 			if err != nil {
-				LogInfof(ctx, "Unable to delete the targets")
+				LogInfof(ctx, targetsDeletionError)
 				return result, err
 			}
 
@@ -96,7 +90,7 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			controllerutil.RemoveFinalizer(replikaManifest, replikaFinalizer)
 			err = r.Update(ctx, replikaManifest)
 			if err != nil {
-				LogInfof(ctx, "Failed to update finalizer of replika: %s", req.Name)
+				LogInfof(ctx, replikaFinalizersUpdateError, req.Name)
 			}
 		}
 		result = ctrl.Result{}
@@ -115,35 +109,28 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// 5. Update the status before the requeue
 	defer func() {
-		equal := true
-		equal, err = r.SameReplikaConditions(ctx, req, replikaManifest)
-		if equal {
-			return
-		}
-
 		err = r.Status().Update(ctx, replikaManifest)
 		if err != nil {
-			LogInfof(ctx, "Failed to update the condition on replika: %s", req.Name)
+			LogInfof(ctx, replikaConditionUpdateError, req.Name)
 		}
 	}()
 
-	// 6. The Replika CR already exist: manage the update
-	err = r.UpdateTargets(ctx, replikaManifest)
-	if err != nil {
-		//LogInfof(ctx, "Can not update the targets for the Replika: %s", replikaManifest.Name)
-		LogErrorf(ctx, err, "MEMEMEEM")
-		return result, err
-	}
-
-	// 7. Schedule periodical request
+	// 6. Schedule periodical request
 	RequeueTime, err := r.GetSynchronizationTime(replikaManifest)
 	if err != nil {
-		//r.UpdateStatus(ctx, req, replikaManifest)
-		LogInfof(ctx, "Can not requeue the Replika: %s", replikaManifest.Name)
+		LogInfof(ctx, replikaSyncTimeRetrievalError, replikaManifest.Name)
 		return result, err
 	}
 	result = ctrl.Result{
 		RequeueAfter: RequeueTime,
+	}
+
+	// 7. The Replika CR already exist: manage the update
+	err = r.UpdateTargets(ctx, replikaManifest)
+	if err != nil {
+		LogInfof(ctx, updateTargetsError, replikaManifest.Name)
+
+		return result, err
 	}
 
 	// 8. Success, update the status
