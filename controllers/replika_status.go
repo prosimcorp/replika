@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // https://github.com/external-secrets/external-secrets/blob/80545f4f183795ef193747fc959558c761b51c99/apis/externalsecrets/v1alpha1/externalsecret_types.go#L168
@@ -67,42 +65,4 @@ func (r *ReplikaReconciler) UpdateReplikaCondition(replika *replikav1alpha1.Repl
 		currentCondition.Message = condition.Message
 		currentCondition.LastTransitionTime = metav1.Now()
 	}
-}
-
-// SameReplikaConditions compare the conditions of the replika in the cluster with the replica in the reconcile process
-func (r *ReplikaReconciler) SameReplikaConditions(ctx context.Context, req ctrl.Request, replika *replikav1alpha1.Replika) (equal bool, err error) {
-	equal = true
-
-	oldReplika := &replikav1alpha1.Replika{}
-	err = r.Get(ctx, req.NamespacedName, oldReplika)
-	if err != nil {
-		LogInfof(ctx, "Error getting the Replika from the cluster")
-		return equal, err
-	}
-
-	for i := range replika.Status.Conditions {
-		for j := range oldReplika.Status.Conditions {
-			sameTypes := replika.Status.Conditions[i].Type == oldReplika.Status.Conditions[j].Type
-			differentStatus := replika.Status.Conditions[i].Status != oldReplika.Status.Conditions[j].Status
-			differentReason := replika.Status.Conditions[i].Reason != oldReplika.Status.Conditions[j].Reason
-			differentMessage := replika.Status.Conditions[i].Message != oldReplika.Status.Conditions[j].Message
-			if sameTypes && (differentStatus || differentReason || differentMessage) {
-				equal = false
-				return equal, err
-			}
-		}
-	}
-
-	return equal, err
-}
-
-func (r *ReplikaReconciler) UpdateStatus(ctx context.Context, req ctrl.Request, replika *replikav1alpha1.Replika) error {
-	equal, err := r.SameReplikaConditions(ctx, req, replika)
-	if equal {
-		return err
-	}
-
-	err = r.Status().Update(ctx, replika)
-
-	return err
 }
