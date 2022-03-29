@@ -1,0 +1,43 @@
+{{ $.Chart.Name }} has been installed. Check its status by running:
+  kubectl -n {{ $.Release.Namespace }} get po -l "app.kubernetes.io/instance={{ $.Release.Name }}"
+
+Example hot to create sample `Replika` resource:
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-configmap
+data:
+  example-key: value
+---
+apiVersion: replika.prosimcorp.com/v1alpha1
+kind: Replika
+metadata:
+  name: replika-sample
+spec:
+  # Some configuration features
+  synchronization:
+    time: "20s"
+
+  # Defines the resource to sync through namespaces
+  source:
+    group: ""
+    version: v1
+    kind: ConfigMap
+    name: sample-configmap
+    namespace: &sourceNamespace default
+
+  # Defines the resources that will be generated
+  target:
+    namespaces:
+      # List of namespaces where to replicate the resources when 'matchAll' is disabled
+      replicateIn: []
+
+      # Replicate the resource in all namespaces, some of them are excluded
+      matchAll: true
+      excludeFrom:
+        - kube-system
+        - kube-public
+
+Visit https://github.com/prosimcorp/replika for more info and instructions on how to create Replika resources.

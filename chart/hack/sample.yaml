@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-configmap
+data:
+  example-key: value
+---
+apiVersion: replika.prosimcorp.com/v1alpha1
+kind: Replika
+metadata:
+  name: replika-sample
+spec:
+  synchronization:
+    time: "5s"
+  source:
+    group: ""
+    version: v1
+    kind: ConfigMap
+    name: sample-configmap
+    namespace: &sourceNamespace replika
+  target:
+    namespaces:
+      replicateIn:
+        - default
+      matchAll: false

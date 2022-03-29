@@ -1,0 +1,40 @@
+{{- if .Values.replikaSources.sources }}
+{{- range $source := .Values.replikaSources.sources }}
+---
+apiVersion: replika.prosimcorp.com/v1alpha1
+kind: Replika
+metadata:
+  name: {{ $source.kind | lower }}-{{ $source.name | lower }}
+spec:
+  # Some configuration features
+  synchronization:
+    time: {{ $source.synchronization | default ($.Values.replikaSources.synchronizationTime) }}
+
+  # Defines the resource to sync through namespaces
+  source:
+    group: {{ $source.group | quote }}
+    version: {{ required "Source version field is required" $source.version }}
+    kind: {{ required "Source kind field is required" $source.kind }}
+    name: {{ required "Source name field is required" $source.name }}
+    namespace: {{ required "Source namespace field is required" $source.namespace }}
+
+  # Defines the resources that will be generated
+  target:
+    namespaces:
+      # Replicate the resource in all namespaces, some of them are excluded
+      matchAll: {{ $source.target.namespaces.matchAll }}
+      {{- if $source.target.namespaces.matchAll }}
+      excludeFrom:
+        - {{ $source.namespace }}
+        {{- range $source.target.namespaces.excludeFrom }}
+        - {{ . }}
+        {{- end }}
+      {{- else }}
+      # List of namespaces where to replicate the resources when 'matchAll' is disabled
+      replicateIn:
+        {{- range $source.target.namespaces.replicateIn }}
+        - {{ . }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

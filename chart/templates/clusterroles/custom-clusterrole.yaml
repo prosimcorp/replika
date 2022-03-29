@@ -1,0 +1,27 @@
+{{- if .Values.customResourceDefinitions }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "replika.fullname" . }}-custom-clusterrole
+  labels:
+    {{- include "replika.labels" . | nindent 4 }}
+rules:
+{{- range .Values.customResourceDefinitions }}
+- apiGroups:
+  {{- range .apiGroups }}
+  - {{ . | quote }}
+  {{- end }}
+  resources:
+  {{- range .resources }}
+  - {{ . }}
+  {{- end }}
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}
+{{- end }}
