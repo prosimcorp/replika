@@ -50,7 +50,7 @@ spec:
           securityContext:
             {{- toYaml .Values.kubeRbacProxy.securityContext | nindent 12 }}
           {{- end }}
-          {{- with .Values.kubeRbacProxy.resources }}
+          {{- if .Values.kubeRbacProxy.resources }}
           resources:
             {{- toYaml .Values.kubeRbacProxy.resources | nindent 12 }}
           {{- end }}
@@ -83,7 +83,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           {{- end }}
-          {{- with .Values.resources }}
+          {{- if .Values.resources }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
@@ -103,3 +103,4 @@ spec:
       serviceAccountName: {{ include "replika.serviceAccountName" . }}
       {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 10 }}
+
