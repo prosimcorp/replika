@@ -95,6 +95,63 @@ resources:
    - clusterRoleBinding-replika-custom-resources.yaml
 ```
 
+## Example
+
+To replicate resources using this operator you will need to create a CR of kind Replika. You can find the spec samples
+for all the versions of the resource in the [examples directory](./config/samples)
+
+You may prefer to learn directly from an example, so let's explain it replicating a ConfigMap resource:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-configmap
+data:
+  example-key: value
+```
+
+Now use a Replika CR to replicate this resource across all namespaces, excluding some sensitive ones:
+
+```yaml
+apiVersion: replika.prosimcorp.com/v1alpha1
+kind: Replika
+metadata:
+  name: replika-sample
+spec:
+  # Some configuration features
+  synchronization:
+    time: "20s"
+
+  # Defines the resource to sync through namespaces
+  source:
+    group: ""
+    version: v1
+    kind: ConfigMap
+    name: sample-configmap
+    namespace: &sourceNamespace default
+
+  # Defines the resources that will be generated
+  target:
+    namespaces:
+      # List of namespaces where to replicate the resources when 'matchAll' is disabled
+      replicateIn: []
+
+      # Replicate the resource in all namespaces, some of them are excluded
+      matchAll: true
+      excludeFrom:
+        - kube-system
+        - kube-public
+        - kube-node-lease
+        - *sourceNamespace
+```
+
+Replika is done thinking about reliability first, and due to it is designed to modify resources across namespaces, we
+have contemplated several risky situations where Replika could break your environment and designed the operator to simply
+ignores your destruction desires. For example, it will not replicate sources of `kind: Namespace`. Another risky situation
+could happen when the target namespace is the same as the source namespace, because it would overwrite the source.
+Don't worry, at ProsimCorp we are used to failing a lot, so we design our tools to avoid out own failures.
+
 ## How to develop
 
 > We recommend you to use a development tool like [Kind](https://kind.sigs.k8s.io/) or [Minikube](https://minikube.sigs.k8s.io/docs/start/)
@@ -150,63 +207,6 @@ the process, the steps are described in the following recipe:
    ```console
     make kustomization-build
     ```
-
-## Example
-
-To replicate resources using this operator you will need to create a CR of kind Replika. You can find the spec samples 
-for all the versions of the resource in the [examples directory](./config/samples)
-
-You may prefer to learn directly from an example, so let's explain it replicating a ConfigMap resource:
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: sample-configmap
-data:
-  example-key: value
-```
-
-Now use a Replika CR to replicate this resource across all namespaces, excluding some sensitive ones:
-
-```yaml
-apiVersion: replika.prosimcorp.com/v1alpha1
-kind: Replika
-metadata:
-  name: replika-sample
-spec:
-  # Some configuration features
-  synchronization:
-    time: "20s"
-
-  # Defines the resource to sync through namespaces
-  source:
-    group: ""
-    version: v1
-    kind: ConfigMap
-    name: sample-configmap
-    namespace: &sourceNamespace default
-
-  # Defines the resources that will be generated
-  target:
-    namespaces:
-      # List of namespaces where to replicate the resources when 'matchAll' is disabled
-      replicateIn: []
-
-      # Replicate the resource in all namespaces, some of them are excluded
-      matchAll: true
-      excludeFrom:
-        - kube-system
-        - kube-public
-        - kube-node-lease
-        - *sourceNamespace
-```
-
-Replika is done thinking about reliability first, and due to it is designed to modify resources across namespaces, we 
-have contemplated several risky situations where Replika could break your environment and designed the operator to simply 
-ignores your destruction desires. For example, it will not replicate sources of `kind: Namespace`. Another risky situation 
-could happen when the target namespace is the same as the source namespace, because it would overwrite the source.
-Don't worry, at ProsimCorp we are used to failing a lot, so we design our tools to avoid out own failures.
 
 ## How to collaborate
 
