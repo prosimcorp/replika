@@ -3,4 +3,28 @@ kind: Replika
 metadata:
   name: replika-sample
 spec:
-  # TODO(user): Add fields here
+  # Some configuration features
+  synchronization:
+    time: "20s"
+
+  # Defines the resource to sync through namespaces
+  source:
+    group: ""
+    version: v1
+    kind: ConfigMap
+    name: sample-configmap
+    namespace: &sourceNamespace default
+
+  # Defines the resources that will be generated
+  target:
+    namespaces:
+      # List of namespaces where to replicate the resources when 'matchAll' is disabled
+      replicateIn: []
+
+      # Replicate the resource in all namespaces, some of them are excluded
+      matchAll: true
+      excludeFrom:
+        - kube-system
+        - kube-public
+        - kube-node-lease
+        - *sourceNamespace

@@ -2,7 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: replika
+    control-plane: replika
   name: replika-controller-manager-metrics-service
   namespace: replika
 spec:
@@ -12,5 +14,7 @@ spec:
     protocol: TCP
     targetPort: https
   selector:
-    control-plane: controller-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: replika
+    control-plane: replika
 

@@ -2,20 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    control-plane: controller-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: replika
+    control-plane: replika
   name: replika-controller-manager
   namespace: replika
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: replika
+      control-plane: replika
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        control-plane: controller-manager
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: replika
+        control-plane: replika
     spec:
       containers:
       - args:
@@ -42,7 +48,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: prosimcorp/replika:v0.2.4
+        image: prosimcorp/replika:v0.2.5
         livenessProbe:
           httpGet:
             path: /healthz
