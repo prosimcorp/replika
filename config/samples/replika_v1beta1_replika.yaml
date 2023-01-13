@@ -1,4 +1,4 @@
-apiVersion: replika.prosimcorp.com/v1alpha1
+apiVersion: replika.prosimcorp.com/v1beta1
 kind: Replika
 metadata:
   name: replika-sample

@@ -19,25 +19,23 @@ package controllers
 import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
-
 	"k8s.io/apimachinery/pkg/runtime"
-	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	replikav1beta1 "prosimcorp.com/replika/api/v1beta1"
 )
 
 const (
-	defaultSyncTimeForExitWithError = 10 * time.Second
-	scheduleSynchronization         = "Schedule synchronization in: %s"
-	replikaNotFoundError            = "Replika resource not found. Ignoring since object must be deleted."
-	replikaRetrievalError           = "Error getting the Replika from the cluster"
-	targetsDeletionError            = "Unable to delete the targets"
-	replikaFinalizersUpdateError    = "Failed to update finalizer of replika: %s"
-	replikaConditionUpdateError     = "Failed to update the condition on replika: %s"
-	replikaSyncTimeRetrievalError   = "Can not get synchronization time from the Replika: %s"
-	updateTargetsError              = "Can not update the targets for the Replika: %s"
+	scheduleSynchronization       = "Schedule synchronization in: %s"
+	replikaNotFoundError          = "Replika resource not found. Ignoring since object must be deleted."
+	replikaRetrievalError         = "Error getting the Replika from the cluster"
+	targetsDeletionError          = "Unable to delete the targets"
+	replikaFinalizersUpdateError  = "Failed to update finalizer of replika: %s"
+	replikaConditionUpdateError   = "Failed to update the condition on replika: %s"
+	replikaSyncTimeRetrievalError = "Can not get synchronization time from the Replika: %s"
+	updateTargetsError            = "Can not update the targets for the Replika: %s"
 )
 
 // ReplikaReconciler reconciles a Replika object
@@ -59,7 +57,7 @@ type ReplikaReconciler struct {
 func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 
 	//1. Get the content of the Replika
-	replikaManifest := &replikav1alpha1.Replika{}
+	replikaManifest := &replikav1beta1.Replika{}
 	err = r.Get(ctx, req.NamespacedName, replikaManifest)
 
 	// 2. Check existance on the cluster
@@ -147,6 +145,6 @@ func (r *ReplikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 // SetupWithManager sets up the controller with the Manager.
 func (r *ReplikaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&replikav1alpha1.Replika{}).
+		For(&replikav1beta1.Replika{}).
 		Complete(r)
 }

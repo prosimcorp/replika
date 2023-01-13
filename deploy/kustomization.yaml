@@ -6,7 +6,6 @@ resources:
 - clusterrole/replika-proxy-role.yaml
 - clusterrolebinding/replika-manager-rolebinding.yaml
 - clusterrolebinding/replika-proxy-rolebinding.yaml
-- configmap/replika-manager-config.yaml
 - customresourcedefinition/replikas-replika-prosimcorp-com.yaml
 - deployment/replika-controller-manager.yaml
 - namespace/replika.yaml

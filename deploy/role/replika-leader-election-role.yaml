@@ -2,8 +2,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: replika
+    app.kubernetes.io/instance: leader-election-role
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: replika
+    app.kubernetes.io/part-of: replika
   name: replika-leader-election-role
   namespace: replika
 rules:

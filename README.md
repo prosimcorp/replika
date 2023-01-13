@@ -98,7 +98,7 @@ resources:
 ## Example
 
 To replicate resources using this operator you will need to create a CR of kind Replika. You can find the spec samples
-for all the versions of the resource in the [examples directory](./config/samples)
+for all the versions of the resource in the [examples directory](configamples)
 
 You may prefer to learn directly from an example, so let's explain it replicating a ConfigMap resource:
 
@@ -114,7 +114,7 @@ data:
 Now use a Replika CR to replicate this resource across all namespaces, excluding some sensitive ones:
 
 ```yaml
-apiVersion: replika.prosimcorp.com/v1alpha1
+apiVersion: replika.prosimcorp.com/v1beta1
 kind: Replika
 metadata:
   name: replika-sample
@@ -216,3 +216,19 @@ open a PR. The code will be reviewed and tested (always)
 
 > We are developers and hate bad code. For that reason we ask you the highest quality on each line of code to improve
 > this project on each iteration.
+
+## License
+
+Copyright 2023.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

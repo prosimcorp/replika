@@ -2,7 +2,7 @@ package controllers
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
+	replikav1beta1 "prosimcorp.com/replika/api/v1beta1"
 )
 
 // https://github.com/external-secrets/external-secrets/blob/80545f4f183795ef193747fc959558c761b51c99/apis/externalsecrets/v1alpha1/externalsecret_types.go#L168
@@ -39,7 +39,7 @@ func (r *ReplikaReconciler) NewReplikaCondition(condType string, status metav1.C
 }
 
 // GetReplikaCondition returns the condition with the provided type.
-func (r *ReplikaReconciler) GetReplikaCondition(replika *replikav1alpha1.Replika, condType string) *metav1.Condition {
+func (r *ReplikaReconciler) GetReplikaCondition(replika *replikav1beta1.Replika, condType string) *metav1.Condition {
 
 	for i, v := range replika.Status.Conditions {
 		if v.Type == condType {
@@ -50,7 +50,7 @@ func (r *ReplikaReconciler) GetReplikaCondition(replika *replikav1alpha1.Replika
 }
 
 // UpdateReplikaCondition update or create a new condition inside the status of the CR
-func (r *ReplikaReconciler) UpdateReplikaCondition(replika *replikav1alpha1.Replika, condition *metav1.Condition) {
+func (r *ReplikaReconciler) UpdateReplikaCondition(replika *replikav1beta1.Replika, condition *metav1.Condition) {
 
 	// Get the condition
 	currentCondition := r.GetReplikaCondition(replika, condition.Type)

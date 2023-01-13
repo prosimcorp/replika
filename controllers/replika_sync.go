@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	replikav1alpha1 "prosimcorp.com/replika/api/v1alpha1"
+	replikav1beta1 "prosimcorp.com/replika/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -33,7 +33,7 @@ const (
 
 // GetNamespaces Returns the target namespaces of a Replika as a golang list
 // The namespace of the replicated source is NEVER listed to avoid overwrites
-func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav1alpha1.Replika) (namespaces []string, err error) {
+func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav1beta1.Replika) (namespaces []string, err error) {
 
 	// Loop and check the targets given by the user
 	var expression *regexp.Regexp
@@ -108,7 +108,7 @@ func (r *ReplikaReconciler) GetNamespaces(ctx context.Context, replika *replikav
 }
 
 // GetSynchronizationTime return the spec.synchronization.time as duration, or default time on failures
-func (r *ReplikaReconciler) GetSynchronizationTime(replika *replikav1alpha1.Replika) (synchronizationTime time.Duration, err error) {
+func (r *ReplikaReconciler) GetSynchronizationTime(replika *replikav1beta1.Replika) (synchronizationTime time.Duration, err error) {
 	synchronizationTime, err = time.ParseDuration(replika.Spec.Synchronization.Time)
 	if err != nil {
 		synchronizationTime = defaultSynchronizationTime
@@ -120,7 +120,7 @@ func (r *ReplikaReconciler) GetSynchronizationTime(replika *replikav1alpha1.Repl
 }
 
 // GetSource return the source resource that will be replicated
-func (r *ReplikaReconciler) GetSource(ctx context.Context, replika *replikav1alpha1.Replika) (source *unstructured.Unstructured, err error) {
+func (r *ReplikaReconciler) GetSource(ctx context.Context, replika *replikav1beta1.Replika) (source *unstructured.Unstructured, err error) {
 
 	// Get the source manifest
 	source = &unstructured.Unstructured{}
@@ -139,7 +139,7 @@ func (r *ReplikaReconciler) GetSource(ctx context.Context, replika *replikav1alp
 }
 
 // BuildTargets return a list with all the targets that will be created using the source
-func (r *ReplikaReconciler) BuildTargets(ctx context.Context, replika *replikav1alpha1.Replika) (targets []unstructured.Unstructured, err error) {
+func (r *ReplikaReconciler) BuildTargets(ctx context.Context, replika *replikav1beta1.Replika) (targets []unstructured.Unstructured, err error) {
 
 	// Get the source from a replika
 	var source *unstructured.Unstructured
@@ -215,7 +215,7 @@ func (r *ReplikaReconciler) UpdateTarget(ctx context.Context, target *unstructur
 }
 
 // UpdateTargets Synchronizes all the targets from a source declared on a Replika
-func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav1alpha1.Replika) (err error) {
+func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav1beta1.Replika) (err error) {
 
 	// Get a list of manifests for all the targets
 	var targets []unstructured.Unstructured
@@ -242,7 +242,7 @@ func (r *ReplikaReconciler) UpdateTargets(ctx context.Context, replika *replikav
 }
 
 // DeleteTargets Delete all the targets previously created from a source declared on a Replika
-func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav1alpha1.Replika) (err error) {
+func (r *ReplikaReconciler) DeleteTargets(ctx context.Context, replika *replikav1beta1.Replika) (err error) {
 
 	// Construct a target list object
 	targets := &unstructured.UnstructuredList{}
