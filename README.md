@@ -1,5 +1,9 @@
 # Replika
 
+> **ATTENTION:** From v0.4.0+ bundled Kubernetes deployment manifests are built and uploaded to the releases.
+> We do this to keep them atomic between versions. Due to this, `deploy` directory will be removed from repository.
+> Please, read [related section](#deployment)
+
 ## Description
 A Kubernetes operator to replicate a resource across namespaces
 
@@ -40,8 +44,10 @@ the tag of the version you want to deploy as follows:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- https://github.com/prosimcorp/replika//deploy/?ref=main
+- https://github.com/prosimcorp/replika/releases/download/v0.4.0/bundle.yaml
 ```
+
+> 🧚🏼 **Hey, listen! If you prefer to deploy using Helm, go to the [Helm registry](https://github.com/prosimcorp/helm-charts)**
 
 ## RBAC
 
@@ -88,7 +94,7 @@ subjects:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-   - https://github.com/prosimcorp/replika//deploy/?ref=main
+   - https://github.com/prosimcorp/replika/releases/download/v0.4.0/bundle.yaml
    
    # Add your custom resources
    - clusterRole-replika-custom-resources.yaml
@@ -193,7 +199,7 @@ the process, the steps are described in the following recipe:
 
     ```console
     export VERSION="0.0.1"
-    export IMG="prosimcorp/replika:v$VERSION"
+    export IMG="ghcr.io/prosimcorp/replika:v$VERSION"
     ```
 
 3. Generate and push the Docker image (published on Docker Hub).
@@ -205,7 +211,7 @@ the process, the steps are described in the following recipe:
 4. Generate the manifests for deployments using Kustomize
 
    ```console
-    make kustomization-build
+    make bundle-build
     ```
 
 ## How to collaborate
