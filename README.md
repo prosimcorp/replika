@@ -1,5 +1,14 @@
 # Replika
 
+![GitHub Release](https://img.shields.io/github/v/release/prosimcorp/replika)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/prosimcorp/replika)
+[![Go Report Card](https://goreportcard.com/badge/github.com/prosimcorp/replika)](https://goreportcard.com/report/github.com/prosimcorp/replika)
+![image pulls](https://img.shields.io/badge/+2k-brightgreen?label=image%20pulls)
+![GitHub License](https://img.shields.io/github/license/prosimcorp/replika)
+
+![GitHub User's stars](https://img.shields.io/github/stars/prosimcorp?label=Prosimcorp%20Stars)
+![GitHub followers](https://img.shields.io/github/followers/prosimcorp?label=Prosimcorp%20Followers)
+
 > **ATTENTION:** From v0.4.0+ bundled Kubernetes deployment manifests are built and uploaded to the releases.
 > We do this to keep them atomic between versions. Due to this, `deploy` directory will be removed from repository.
 > Please, read [related section](#deployment)
